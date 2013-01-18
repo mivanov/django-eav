@@ -18,6 +18,7 @@
 #    along with EAV-Django.  If not, see <http://gnu.org/licenses/>.
 from django.db.models.fields.related import ForeignKey, ManyToManyField,\
     OneToOneField
+from django.db.models.fields import FieldDoesNotExist
 '''
 ******
 models
@@ -315,8 +316,11 @@ class BaseAttribute(models.Model):
                 value_obj.save()
 
     def get_type_display(self):
-        value_field = 'value_' + self.type
-        return self.get_value_cls()._meta.get_field(value_field).verbose_name
+        choices = self.get_value_cls().get_type_choices()
+        for name, verbose_name in choices:
+            if name == self.type:
+                return verbose_name
+        return self.type
 
     def __unicode__(self):
         return u"%s (%s)" % (self.name, self.get_type_display())
@@ -382,7 +386,11 @@ class BaseValue(models.Model):
         Returns True if this value's data field is a m2m.
         '''
         data_field_name = 'value_%s' % self.attribute.type
-        data_field = self._meta.get_field(data_field_name)
+        try:
+            data_field = self._meta.get_field(data_field_name)
+        except FieldDoesNotExist:
+            # to support proxy fields, for now assume they're never m2m
+            return False
         return isinstance(data_field, ManyToManyField)
 
     def __unicode__(self):

@@ -93,6 +93,25 @@ class EavDatatypeField(models.CharField):
                                     u"attribute that is already in use."))
 
 
+def proxy_property(value_field):
+    """
+    Creates an alias to another object variable.
+
+    Use it like this:
+
+    class Employee(models.Model):
+        name = models.CharField()
+        position = models.CharField()
+        title = proxy_property('position')
+
+    Now you can use employee.title and employee.position interchangeably.
+    """
+    def get_value(self):
+        return getattr(self, value_field)
+    def set_value(self, val):
+        setattr(self, value_field, val)
+    return property(get_value, set_value)
+
 
 try:
     from south.modelsinspector import add_introspection_rules
